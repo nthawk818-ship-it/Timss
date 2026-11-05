@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>科學練習模擬器</title>
+<style>
+    * { box-sizing: border-box; font-family: 'Microsoft JhengHei', 'PingFang TC', sans-serif; margin: 0; padding: 0; }
+    body { background: #eef6f9; color: #2b3a42; line-height: 1.7; min-height: 100vh; padding: 16px 0; }
+
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: #ffffff;
+        padding: 22px;
+        border-radius: 16px;
+        box-shadow: 0 6px 24px rgba(15, 110, 140, 0.12);
+    }
+
+    h1 { color: #0f6e8c; text-align: center; border-bottom: 3px solid #f4a300; padding-bottom: 10px; margin-bottom: 18px; font-size: 1.7em; }
+    .subtitle { text-align: center; color: #5b7885; margin-bottom: 14px; font-size: 1em; }
+
+    /* ===== 開始頁 ===== */
+    .start-page { text-align: center; padding: 40px 20px; }
+    .start-page h2 { color: #0f6e8c; margin-bottom: 36px; }
+
+    .student-info {
+        max-width: 420px;
+        margin: 0 auto 36px auto;
+        padding: 22px;
+        background: #f1f8fa;
+        border-radius: 12px;
+        border: 2px solid #0f6e8c;
+        text-align: left;
+    }
+    .student-info h3 { color: #0f6e8c; margin-bottom: 16px; text-align: center; }
+    .input-group { margin-bottom: 14px; }
+    .input-group label { display: block; margin-bottom: 5px; color: #0f6e8c; font-weight: bold; }
+    .input-group input {
+        width: 100%; padding: 10px 12px; border: 1px solid #0f6e8c;
+        border-radius: 6px; font-size: 1em;
+    }
+    .input-group input:focus { outline: none; border-color: #095067; box-shadow: 0 0 0 3px rgba(15,110,140,.15); }
+
+    .start-button {
+        background: #2fae7a; color: #fff; font-size: 1.4em; padding: 14px 46px;
+        border: none; border-radius: 10px; cursor: pointer; transition: all .25s;
+    }
+    .start-button:hover:not(:disabled) { background: #248a60; transform: scale(1.04); }
+    .start-button:disabled { background: #c3d4da; cursor: not-allowed; }
+    .start-hint { color: #8aa4ae; font-size: .9em; margin-top: 12px; }
+
+    /* ===== 學生資訊條 ===== */
+    .student-bar {
+        margin-bottom: 14px; padding: 10px 16px;
+        background: #e3f2f7; border-radius: 8px;
+        border-left: 5px solid #0f6e8c; font-size: .95em; color: #0f6e8c; font-weight: bold;
+    }
+    .student-bar span { color: #c47f00; }
+
+    /* ===== 主內容 ===== */
+    .main-content { display: flex; gap: 20px; align-items: stretch; }
+
+    .left-panel, .right-panel {
+        display: flex; flex-direction: column;
+        border-radius: 12px; overflow: hidden;
+        border: 1px solid #d4e6ec; background: #fff;
+        height: 640px;
+    }
+    .left-panel { flex: 1.05; }
+    .right-panel { flex: 1.5; }
+
+    .panel-header {
+        background: #0f6e8c; color: #fff; padding: 9px 16px;
+        font-weight: bold; font-size: .95em; letter-spacing: .5px; flex-shrink: 0;
+    }
+    .panel-header.alt { background: #c47f00; }
+
+    /* ===== 左側資料區：讓圖片垂直居中並完整顯示 ===== */
+    .material-area {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        background: #fbfdfe;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;   /* 垂直居中 */
+    }
+
+    .no-material { color: #a8bfc8; text-align: center; padding: 40px 10px; font-size: .95em; }
+
+    /* 大圖：同時限制寬高，保持比例完整顯示 */
+    .material-img {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        display: block;
+        border-radius: 10px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    /* 表格 */
+    .science-table { width: 100%; border-collapse: collapse; margin: 8px 0; background: #fff; }
+    .science-table th, .science-table td {
+        border: 2px solid #0f6e8c; padding: 12px 6px; text-align: center; font-size: .92em;
+    }
+    .science-table th { background: #d9eef5; color: #0f6e8c; }
+    .science-table .cell { font-weight: bold; font-size: 1.25em; color: #c47f00; }
+
+    /* ===== 底部作答進度區 ===== */
+    .bottom-progress {
+        margin-top: 18px;
+        background: #fff;
+        border: 1px solid #d4e6ec;
+        border-radius: 12px;
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        box-shadow: 0 3px 10px rgba(15, 110, 140, 0.06);
+    }
+    .bottom-progress .progress-label {
+        color: #0f6e8c;
+        font-weight: bold;
+        font-size: .95em;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .progress-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        flex: 1;
+    }
+    .prog-btn {
+        width: 36px;
+        height: 36px;
+        border: 2px solid #cfe4eb;
+        background: #fff;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: .9em;
+        font-weight: bold;
+        color: #8aa4ae;
+        transition: all .15s;
+        flex-shrink: 0;
+    }
+    .prog-btn:hover { border-color: #0f6e8c; color: #0f6e8c; transform: translateY(-2px); }
+    .prog-btn.done { background: #d6f0e4; border-color: #2fae7a; color: #1d7a55; }
+    .prog-btn.current { background: #0f6e8c; border-color: #0f6e8c; color: #fff; }
+
+    /* ===== 題目區 ===== */
+    .question-area { flex: 1; overflow-y: auto; padding: 18px 20px; background: #fffdf7; }
+
+    .question { padding-bottom: 10px; }
+    .q-text { font-weight: bold; color: #0f6e8c; margin-bottom: 8px; font-size: .95em; }
+    .q-body { font-size: 1.06em; margin-bottom: 16px; color: #23343d; line-height: 1.75; }
+
+    .question-type {
+        display: inline-block; background: #f4a300; color: #4a3200;
+        padding: 2px 10px; border-radius: 12px; font-size: .72em;
+        font-weight: bold; margin-left: 8px; vertical-align: middle;
+    }
+
+    /* 選項 */
+    .option {
+        display: flex; align-items: flex-start; gap: 10px;
+        padding: 12px 15px; margin: 8px 0;
+        background: #f1f8fa; border: 2px solid transparent;
+        border-radius: 9px; cursor: pointer; transition: all .18s;
+    }
+    .option:hover { background: #dceef4; border-color: #7fbfd0; }
+    .option.selected { background: #d6f0e4; border-color: #2fae7a; }
+    .option input[type="radio"] { margin-top: 6px; transform: scale(1.25); accent-color: #0f6e8c; flex-shrink: 0; }
+    .option-label { font-weight: bold; color: #0f6e8c; flex-shrink: 0; }
+    .option-text { flex: 1; }
+
+    /* 多小題 */
+    .sub-parts { display: flex; flex-direction: column; gap: 16px; }
+    .sub-part { background: #f1f8fa; border-radius: 9px; padding: 12px 14px; border: 1px solid #d4e6ec; }
+    .sub-label { font-weight: bold; color: #0f6e8c; margin-bottom: 8px; font-size: .95em; }
+    .sub-input {
+        width: 100%; padding: 10px 12px; border: 2px solid #a9cdd8;
+        border-radius: 7px; font-size: 1em; font-family: inherit; background: #fff;
+    }
+    .sub-input:focus { outline: none; border-color: #0f6e8c; box-shadow: 0 0 0 3px rgba(15,110,140,.12); }
+
+    .sub-options { display: flex; flex-wrap: wrap; gap: 10px; }
+    .sub-option {
+        display: flex; align-items: center; gap: 8px;
+        padding: 9px 18px; background: #fff; border: 2px solid #cfe4eb;
+        border-radius: 8px; cursor: pointer; transition: all .18s; font-size: .95em;
+    }
+    .sub-option:hover { border-color: #7fbfd0; background: #f4fbfd; }
+    .sub-option.selected { background: #d6f0e4; border-color: #2fae7a; }
+    .sub-option input[type="radio"] { transform: scale(1.15); accent-color: #0f6e8c; }
+
+    .q-progress { margin-top: 18px; font-size: .85em; color: #8aa4ae; text-align: right; }
+
+    /* ===== 按鈕 ===== */
+    .button-container {
+        display: flex; justify-content: center; gap: 14px;
+        margin-top: 18px; padding-top: 18px; border-top: 1px solid #e3eef2;
+    }
+    .button {
+        background: #0f6e8c; color: #fff; padding: 11px 28px;
+        border: none; border-radius: 8px; cursor: pointer;
+        font-size: 1em; transition: background .22s;
+    }
+    .button:hover { background: #095067; }
+    .button.submit { background: #2fae7a; }
+    .button.submit:hover { background: #248a60; }
+    .button:disabled { background: #c3d4da; cursor: not-allowed; }
+
+    /* ===== 結果區 ===== */
+    .result-area {
+        display: none; margin-top: 24px; padding: 24px;
+        background: #f4fbf7; border-radius: 12px; border: 1px solid #c9e8d8;
+    }
+    .result-area h2 { color: #1d7a55; margin-bottom: 14px; }
+    .result-meta { color: #4c6b78; margin-bottom: 18px; font-size: .95em; }
+
+    .result-item {
+        background: #fff; border-radius: 9px; padding: 14px 16px;
+        margin-bottom: 12px; border-left: 4px solid #7fbfd0;
+    }
+    .result-q { color: #0f6e8c; font-size: .95em; margin-bottom: 8px; }
+    .result-a { background: #f1f8fa; border-radius: 7px; padding: 10px 14px; color: #23343d; }
+    .answer-list { list-style: none; }
+    .answer-list li { padding: 3px 0; }
+    .answer-list li strong { color: #0f6e8c; }
+
+    .csv-export-btn {
+        background: #2fae7a; color: #fff; padding: 11px 24px;
+        border: none; border-radius: 7px; cursor: pointer; font-size: .95em;
+    }
+    .csv-export-btn:hover { background: #248a60; }
+    .export-success { color: #2fae7a; font-weight: bold; margin-top: 10px; display: none; }
+
+    /* ===== 對話框 ===== */
+    .warning-dialog, .input-warning-dialog {
+        display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
+        z-index: 1000; justify-content: center; align-items: center; padding: 20px;
+    }
+    .warning-content, .input-warning-content {
+        background: #fff; padding: 28px; border-radius: 12px;
+        max-width: 480px; width: 100%; text-align: center;
+        box-shadow: 0 8px 28px rgba(0,0,0,.3);
+    }
+    .warning-content h3, .input-warning-content h3 { color: #d9534f; margin-bottom: 14px; }
+    .warning-content ul {
+        text-align: left; margin: 16px 0; padding-left: 24px;
+        max-height: 200px; overflow-y: auto;
+    }
+    .warning-content li { padding: 2px 0; }
+    .warning-button, .input-warning-button {
+        background: #0f6e8c; color: #fff; padding: 10px 26px;
+        border: none; border-radius: 6px; cursor: pointer; margin-top: 8px;
+    }
+    .warning-button:hover, .input-warning-button:hover { background: #095067; }
+
+    /* ===== 響應式 ===== */
+    @media (max-width: 992px) {
+        .main-content { flex-direction: column; }
+        .left-panel, .right-panel { width: 100%; height: auto; max-height: 460px; }
+        .progress-grid { justify-content: center; }
+    }
+    @media (max-width: 600px) {
+        .container { padding: 12px; }
+        .button { padding: 10px 16px; font-size: .9em; }
+        .prog-btn { width: 32px; height: 32px; font-size: .85em; }
+        .bottom-progress { padding: 12px; gap: 10px; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+
+    <!-- ===== 開始頁 ===== -->
+    <div class="start-page" id="start-page">
+        <h1>🔬 科學練習模擬器</h1>
+        <h2>歡迎進行科學練習</h2>
+
+        <div class="student-info">
+            <h3>請輸入學生信息</h3>
+            <div class="input-group">
+                <label for="student-class">班別：</label>
+                <input type="text" id="student-class" placeholder="例如：p4a">
+            </div>
+            <div class="input-group">
+                <label for="student-id">學號：</label>
+                <input type="text" id="student-id" placeholder="例如：1">
+            </div>
+        </div>
+
+        <button class="start-button" id="start-btn" disabled>開始練習</button>
+        <p class="start-hint">請先填寫班別和學號，方可開始練習</p>
+    </div>
+
+    <!-- ===== 答題頁 ===== -->
+    <div id="quiz-page" style="display: none;">
+        <h1>🔬 科學練習模擬器</h1>
+        <p class="subtitle">請仔細閱讀左側資料，然後在右側回答問題。</p>
+
+        <div class="student-bar">
+            班別：<span id="display-class"></span>　｜　學號：<span id="display-id"></span>
+            　｜　作答進度：<span id="progress-text">0 / 0</span>
+        </div>
+
+        <div class="main-content">
+            <!-- 左側：題目資料 -->
+            <div class="left-panel">
+                <div class="panel-header">🔍 題目資料</div>
+                <div class="material-area" id="material-area"></div>
+            </div>
+
+            <!-- 右側：題目 -->
+            <div class="right-panel">
+                <div class="panel-header">📝 測驗題目</div>
+                <div class="question-area" id="question-area"></div>
+            </div>
+        </div>
+
+        <!-- 底部作答進度區 -->
+        <div class="bottom-progress">
+            <div class="progress-label">📍 作答進度</div>
+            <div class="progress-grid" id="progress-grid"></div>
+        </div>
+
+        <div class="button-container" id="button-container">
+            <button class="button" id="prev-btn">← 上一題</button>
+            <button class="button" id="next-btn">下一題 →</button>
+            <button class="button submit" id="submit-btn">提交答案</button>
+        </div>
+
+        <!-- 結果報告 -->
+        <div class="result-area" id="result-area">
+            <h2>📊 練習結果報告</h2>
+            <p class="result-meta">班別：<span id="result-class"></span>　｜　學號：<span id="result-id"></span></p>
+            <div id="detailed-feedback"></div>
+
+            <div style="text-align: center; margin-top: 22px;">
+                <button class="csv-export-btn" id="export-csv-btn">📥 下載答案 CSV 文件</button>
+                <div class="export-success" id="export-success">✓ CSV 文件已生成！</div>
+            </div>
+
+            <div class="button-container">
+                <button class="button" id="restart-btn">重新開始</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 未作答警告 -->
+    <div class="warning-dialog" id="warning-dialog">
+        <div class="warning-content">
+            <h3>⚠️ 尚有未完成的題目</h3>
+            <p>以下題目尚未作答，請先完成所有題目後再提交：</p>
+            <ul id="unanswered-list"></ul>
+            <p>您可以點擊下方「作答進度」的題號，快速跳轉到該題。</p>
+            <button class="warning-button" id="close-warning-btn">返回繼續答題</button>
+        </div>
+    </div>
+
+    <!-- 輸入提示對話框 -->
+    <div class="input-warning-dialog" id="input-warning-dialog">
+        <div class="input-warning-content">
+            <h3>⚠️ 請輸入學生信息</h3>
+            <p>請先填寫班別和學號，然後再開始練習。</p>
+            <button class="input-warning-button" id="close-input-warning-btn">確定</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ============================================================
+   核心資料：題庫（已替換圖片與修改選項）
+   ============================================================ */
+const exerciseData = {
+    title: "自然科學練習",
+    questions: [
+        { id:1, type:"single", text:"下列哪一組只包括生物？",
+          options:["雲、火、河流","火、河流、樹","河流、鳥、樹","鳥、樹、蚯蚓","樹、蚯蚓、雲"],
+          correctAnswer:3, feedback:"鳥、樹、蚯蚓都是生物；雲、火、河流都是非生物。" },
+        { id:2, type:"single", text:"哪一組只包含生物？",
+          options:["兔子、種子、鳥","種子、鳥、風","火山、螳螂、兔子","風、螳螂、火山"],
+          correctAnswer:0, feedback:"兔子、種子、鳥都是生物；風、火山都屬於非生物。" },
+        { id:3, type:"multi", text:"植物是生物還是非生物？請勾選一個方格，並解釋你的答案。",
+          parts:[
+            {id:"a",type:"radio",label:"植物是：",choices:["生物","非生物"],correct:0},
+            {id:"b",type:"text",label:"解釋你的答案：",placeholder:"請寫出你的理由，例如植物能做甚麼…"}
+          ],
+          feedback:"植物是生物。它們能生長、繁殖、需要水／空氣／陽光，會對刺激作出反應，並由細胞組成。" },
+        { id:4, type:"single", text:"觀察下面四張圖片，哪些圖片顯示的是無生命的事物？",
+          material:`<img src="images/4.jpg" class="material-img" alt="河流、樹木、種子、火">`,
+          options:["樹木和火","火和河流","河流和種子","種子和樹木"],
+          correctAnswer:1, feedback:"河流和火都是無生命（非生物）。樹木和種子都是生物。" },
+        { id:5, type:"multi", text:"鳥是生物，雲是非生物。請給出兩條理由，說明為甚麼鳥被歸類為生物，而雲被歸類為非生物。",
+          material:`<img src="images/5.jpg" class="material-img" alt="鳥和雲">`,
+          parts:[
+            {id:"a",type:"text",label:"理由 1：",placeholder:"請寫出第一條理由…"},
+            {id:"b",type:"text",label:"理由 2：",placeholder:"請寫出第二條理由…"}
+          ],
+          feedback:"鳥能生長、繁殖、進食、呼吸、對刺激作出反應，並且有細胞結構；雲不能生長、不能繁殖、不需進食和呼吸。" },
+        { id:6, type:"multi", text:"下圖顯示一個池塘。請在下方列出這幅圖中顯示的三種生物和三種非生物。",
+          material:`<img src="images/6.jpg" class="material-img" alt="池塘">`,
+          parts:[
+            {id:"b1",type:"text",label:"生物 1："},{id:"b2",type:"text",label:"生物 2："},{id:"b3",type:"text",label:"生物 3："},
+            {id:"n1",type:"text",label:"非生物 1："},{id:"n2",type:"text",label:"非生物 2："},{id:"n3",type:"text",label:"非生物 3："}
+          ],
+          feedback:"生物：樹木、荷花、魚、烏龜、青蛙、蜻蜓；非生物：太陽、雲、水、空氣、石頭。" },
+        { id:7, type:"single", text:"這是一幅鳥類的圖。你最有可能在哪裡找到這種鳥？",
+          material:`<img src="images/7.jpg" class="material-img" alt="鳥類">`,
+          options:["森林","草地","玉米田","沙漠","湖泊"], correctAnswer:4,
+          feedback:"這是一種水鳥，腳有蹼、嘴扁平，最適合在湖泊等水域生活。" },
+        { id:8, type:"single", text:"哪一幅圖顯示的不是昆蟲？",
+          material:`<img src="images/8.jpg" class="material-img" alt="蝴蝶、蚱蜢、蜘蛛、螞蟻">`,
+          options:["蝴蝶","蚱蜢","蜘蛛","螞蟻"], correctAnswer:2,
+          feedback:"蜘蛛有八條腿、身體分為兩部分，不是昆蟲。昆蟲有六條腿、身體分為三部分。" },
+        { id:9, type:"single", text:"下列哪一組只包含有脊椎的動物（脊椎動物）？",
+          options:["蚯蚓、蝸牛、水母","鯉魚、青蛙、蜥蜴","蜘蛛、螃蟹、蜈蚣","海星、水母、珊瑚","章魚、蜆、蝦"],
+          correctAnswer:1, feedback:"鯉魚（魚類）、青蛙（兩棲類）、蜥蜴（爬行類）都有脊椎。其餘各組都是無脊椎動物。" },
+        { id:10, type:"single", text:"下圖顯示四組動物的分類。魚屬於哪一組？",
+          material:`<table class="science-table">
+            <thead><tr><th></th><th>陸生動物</th><th>水生動物</th></tr></thead>
+            <tbody>
+              <tr><td>有骨骼</td><td class="cell">A</td><td class="cell">B</td></tr>
+              <tr><td>沒有骨骼</td><td class="cell">C</td><td class="cell">D</td></tr>
+            </tbody></table>`,
+          options:["陸生動物、有骨骼","水生動物、有骨骼","陸生動物、沒有骨骼","水生動物、沒有骨骼"],
+          correctAnswer:1, feedback:"魚生活在水中，身體裏有脊椎（內骨骼），所以屬於「水生動物、有骨骼」。" },
+        { id:11, type:"multi", text:"運用下面的圖片回答問題。（每種動物只使用一次。）",
+          material:`<img src="images/11.jpg" class="material-img" alt="蚯蚓、蛇、馬、螃蟹">`,
+          parts:[
+            {id:"a",type:"text",label:"具有堅硬外骨骼的動物是："},
+            {id:"b",type:"text",label:"沒有脊椎、身體分成許多節的動物是："},
+            {id:"c",type:"text",label:"有毛髮和內骨骼的動物是："},
+            {id:"d",type:"text",label:"皮膚有鱗片且有內骨骼的動物是："}
+          ],
+          feedback:"依序為：螃蟹、蚯蚓、馬、蛇。" },
+        { id:12, type:"single", text:"下列哪一種動物不產卵？",
+          options:["雞","狗","青蛙","烏龜"], correctAnswer:1,
+          feedback:"狗是哺乳動物，幼體在母體內發育，出生後由母體餵奶，不產卵。" },
+        { id:13, type:"single", text:"下列哪些是昆蟲？",
+          material:`<img src="images/13.jpg" class="material-img" alt="蚊子、蜘蛛、蟋蟀、蠍子">`,
+          options:["只有 1 和 3","只有 1 和 4","只有 2 和 4","只有 3 和 4"], correctAnswer:0,
+          feedback:"蚊子和蟋蟀都是昆蟲（六條腿、身體分三部分）。蜘蛛和蠍子有八條腿，屬於蛛形綱，不是昆蟲。" },
+        { id:14, type:"multi", text:"有些生物的幼體在母體內發育（產下幼體），有些從體外產下的卵中孵化（產卵）。請為每種生物選擇正確的一組。",
+          material:`<img src="images/14.jpg" class="material-img" alt="人、青蛙、蝴蝶、狗、鳥、鯨">`,
+          parts:[
+            {id:"human",type:"radio",label:"人：",choices:["產下幼體","產卵"],correct:0},
+            {id:"frog",type:"radio",label:"青蛙：",choices:["產下幼體","產卵"],correct:1},
+            {id:"butterfly",type:"radio",label:"蝴蝶：",choices:["產下幼體","產卵"],correct:1},
+            {id:"dog",type:"radio",label:"狗：",choices:["產下幼體","產卵"],correct:0},
+            {id:"bird",type:"radio",label:"鳥：",choices:["產下幼體","產卵"],correct:1},
+            {id:"whale",type:"radio",label:"鯨：",choices:["產下幼體","產卵"],correct:0}
+          ],
+          feedback:"產下幼體：人、狗、鯨（都是哺乳動物）；產卵：青蛙、蝴蝶、鳥。" },
+        { id:15, type:"single", text:"有一種動物有六條腿。牠最可能是甚麼？",
+          options:["蜘蛛","蒼蠅","蜥蜴","蜈蚣"], correctAnswer:1,
+          feedback:"昆蟲有六條腿。蒼蠅是昆蟲；蜘蛛有八條腿，蜈蚣有很多對腿，蜥蜴有四條腿。" },
+        { id:16, type:"single", text:"下列哪一組動物全都是哺乳類動物？",
+          options:["鴨子、老鷹、鸚鵡","老鼠、猴子、蝙蝠","蝴蝶、螞蟻、蚊子","鱷魚、蛇、烏龜"],
+          correctAnswer:1, feedback:"老鼠、猴子、蝙蝠都是哺乳動物：有毛髮、用肺呼吸、幼體由母體餵奶。" },
+        { id:17, type:"single", text:"哪一種動物的骨骼在身體外部？",
+          material:`<img src="images/17.jpg" class="material-img" alt="貓、螞蟻、魚、蛇">`,
+          options:["貓","螞蟻","魚","蛇"], correctAnswer:1,
+          feedback:"螞蟻有堅硬的外骨骼包住身體；貓、魚、蛇的骨骼都在身體內部。" },
+        { id:18, type:"multi", text:"在海中發現了一種新動物。人們認為它可能是魚類或哺乳動物。請說出魚類具有的一個特徵，以及哺乳動物具有的一個特徵，這些特徵能幫助你判斷它是哪一類動物。",
+          parts:[
+            {id:"fish",type:"text",label:"A. 魚類的特徵：",placeholder:"例如牠用甚麼呼吸、身體表面有甚麼…"},
+            {id:"mammal",type:"text",label:"B. 哺乳動物的特徵：",placeholder:"例如牠用甚麼呼吸、怎樣養育幼體…"}
+          ],
+          feedback:"魚類：用鰓呼吸、有鱗片和鰭、是冷血動物、大多數產卵。哺乳動物：用肺呼吸、有毛髮、幼體由母體餵奶、是恆溫動物。" },
+        { id:19, type:"single", text:"鳥、蝙蝠和蝴蝶有甚麼共同點？",
+          options:["羽毛","毛髮","內骨骼","翅膀"], correctAnswer:3,
+          feedback:"三者都有翅膀，都能飛行。只有鳥有羽毛；只有蝙蝠有毛髮和內骨骼。" },
+        { id:20, type:"multi", text:"下面顯示的動物有沒有脊椎？請為每種動物選擇「是」或「否」。",
+          material:`<img src="images/20.jpg" class="material-img" alt="鷺、蜘蛛、螃蟹、魚、獅子">`,
+          parts:[
+            {id:"lion",type:"radio",label:"獅子：",choices:["是","否"],correct:0},
+            {id:"heron",type:"radio",label:"鷺：",choices:["是","否"],correct:0},
+            {id:"spider",type:"radio",label:"蜘蛛：",choices:["是","否"],correct:1},
+            {id:"crab",type:"radio",label:"螃蟹：",choices:["是","否"],correct:1},
+            {id:"fish",type:"radio",label:"魚：",choices:["是","否"],correct:0}
+          ],
+          feedback:"獅子、鷺、魚有脊椎；蜘蛛、螃蟹沒有脊椎。" },
+        { id:21, type:"single", text:"哪一組動物只包含爬行動物？",
+          options:["蜥蜴、青蛙、蛇","烏龜、蜥蜴、鱷魚","章魚、蝸牛、烏龜","螃蟹、蚯蚓、蛇"],
+          correctAnswer:1, feedback:"烏龜、蜥蜴、鱷魚都是爬行動物：身體有乾燥的鱗片、用肺呼吸、在陸地上產卵。" },
+        { id:22, type:"multi", text:"請利用上面顯示的動物回答下列問題，並在空白處寫出正確動物的名稱。",
+          material:`<img src="images/22.jpg" class="material-img" alt="猴子、鱷魚、蚱蜢、章魚">`,
+          parts:[
+            {id:"a",type:"text",label:"哪一種動物有內骨骼，並為幼崽產奶？",placeholder:"動物名稱…"},
+            {id:"b",type:"text",label:"哪一種動物有外骨骼和三對腿？",placeholder:"動物名稱…"},
+            {id:"c",type:"text",label:"哪一種動物身體柔軟且沒有骨骼？",placeholder:"動物名稱…"}
+          ],
+          feedback:"依序為：猴子、蚱蜢、章魚。" }
+    ]
+};
+
+/* ============================================================
+   狀態變數
+   ============================================================ */
+let currentQuestionIndex = 0;
+let userAnswers = new Array(exerciseData.questions.length).fill(null);
+let studentClass = "";
+let studentId = "";
+
+/* ============================================================
+   工具函式
+   ============================================================ */
+function escapeHtml(s) {
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function typeLabel(t) {
+    if (t === 'single') return '選擇題';
+    if (t === 'multi') return '多部分作答';
+    return '作答題';
+}
+
+/* ============================================================
+   初始化
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('student-class').addEventListener('input', checkInputs);
+    document.getElementById('student-id').addEventListener('input', checkInputs);
+
+    document.getElementById('start-btn').addEventListener('click', startQuiz);
+    document.getElementById('prev-btn').addEventListener('click', goPrev);
+    document.getElementById('next-btn').addEventListener('click', goNext);
+    document.getElementById('submit-btn').addEventListener('click', checkAndSubmit);
+    document.getElementById('restart-btn').addEventListener('click', () => location.reload());
+    document.getElementById('export-csv-btn').addEventListener('click', exportToCSV);
+
+    document.getElementById('close-warning-btn').addEventListener('click', function () {
+        document.getElementById('warning-dialog').style.display = 'none';
+    });
+    document.getElementById('close-input-warning-btn').addEventListener('click', function () {
+        document.getElementById('input-warning-dialog').style.display = 'none';
+    });
+});
+
+function checkInputs() {
+    const c = document.getElementById('student-class').value.trim();
+    const i = document.getElementById('student-id').value.trim();
+    document.getElementById('start-btn').disabled = !(c && i);
+}
+
+/* ============================================================
+   開始練習
+   ============================================================ */
+function startQuiz() {
+    studentClass = document.getElementById('student-class').value.trim();
+    studentId = document.getElementById('student-id').value.trim();
+
+    if (!studentClass || !studentId) {
+        document.getElementById('input-warning-dialog').style.display = 'flex';
+        return;
+    }
+
+    document.getElementById('start-page').style.display = 'none';
+    document.getElementById('quiz-page').style.display = 'block';
+
+    document.getElementById('display-class').textContent = studentClass;
+    document.getElementById('display-id').textContent = studentId;
+    document.getElementById('result-class').textContent = studentClass;
+    document.getElementById('result-id').textContent = studentId;
+
+    currentQuestionIndex = 0;
+    loadQuestion();
+    updateProgress();
+}
+
+/* ============================================================
+   載入題目
+   ============================================================ */
+function loadQuestion() {
+    const q = exerciseData.questions[currentQuestionIndex];
+
+    document.getElementById('material-area').innerHTML =
+        q.material || '<div class="no-material">📄 本題無附加圖示</div>';
+
+    let html = `
+        <div class="question">
+            <p class="q-text">第 ${currentQuestionIndex + 1} 題
+                <span class="question-type">${typeLabel(q.type)}</span>
+            </p>
+            <p class="q-body">${q.text}</p>`;
+
+    if (q.type === 'single') {
+        html += '<div class="options">';
+        q.options.forEach(function (opt, idx) {
+            const checked = (userAnswers[currentQuestionIndex] === idx) ? 'checked' : '';
+            const sel = checked ? 'selected' : '';
+            html += `
+                <label class="option ${sel}">
+                    <input type="radio" name="q-${q.id}" value="${idx}" ${checked}>
+                    <span class="option-label">${String.fromCharCode(65 + idx)}.</span>
+                    <span class="option-text">${opt}</span>
+                </label>`;
+        });
+        html += '</div>';
+    } else if (q.type === 'multi') {
+        html += '<div class="sub-parts">';
+        q.parts.forEach(function (p) {
+            if (p.type === 'text') {
+                html += `
+                    <div class="sub-part">
+                        <div class="sub-label">${p.label}</div>
+                        <input type="text" class="sub-input" data-part="${p.id}"
+                               placeholder="${p.placeholder || '請輸入答案…'}">
+                    </div>`;
+            } else if (p.type === 'radio') {
+                const saved = (userAnswers[currentQuestionIndex] || {})[p.id];
+                html += `
+                    <div class="sub-part">
+                        <div class="sub-label">${p.label}</div>
+                        <div class="sub-options">`;
+                p.choices.forEach(function (c, ci) {
+                    const checked = (saved === ci) ? 'checked' : '';
+                    const sel = checked ? 'selected' : '';
+                    html += `
+                        <label class="sub-option ${sel}">
+                            <input type="radio" name="q-${q.id}-${p.id}" value="${ci}" ${checked}>
+                            <span>${c}</span>
+                        </label>`;
+                });
+                html += '</div></div>';
+            }
+        });
+        html += '</div>';
+    }
+
+    html += `<div class="q-progress">第 ${currentQuestionIndex + 1} / ${exerciseData.questions.length} 題</div></div>`;
+
+    const area = document.getElementById('question-area');
+    area.innerHTML = html;
+    area.scrollTop = 0;
+
+    if (q.type === 'single') {
+        document.querySelectorAll(`input[name="q-${q.id}"]`).forEach(function (inp) {
+            inp.addEventListener('change', function () {
+                userAnswers[currentQuestionIndex] = parseInt(this.value, 10);
+                document.querySelectorAll(`input[name="q-${q.id}"]`).forEach(function (r) {
+                    r.closest('.option').classList.toggle('selected', r.checked);
+                });
+                updateProgress();
+            });
+        });
+    } else if (q.type === 'multi') {
+        document.querySelectorAll('#question-area .sub-input').forEach(function (inp) {
+            const partId = inp.dataset.part;
+            const saved = (userAnswers[currentQuestionIndex] || {})[partId];
+            if (saved) inp.value = saved;
+
+            inp.addEventListener('input', function () {
+                setMultiAnswer(partId, this.value);
+                updateProgress();
+            });
+        });
+        q.parts.forEach(function (p) {
+            if (p.type !== 'radio') return;
+            document.querySelectorAll(`input[name="q-${q.id}-${p.id}"]`).forEach(function (inp) {
+                inp.addEventListener('change', function () {
+                    setMultiAnswer(p.id, parseInt(this.value, 10));
+                    document.querySelectorAll(`input[name="q-${q.id}-${p.id}"]`).forEach(function (r) {
+                        r.closest('.sub-option').classList.toggle('selected', r.checked);
+                    });
+                    updateProgress();
+                });
+            });
+        });
+    }
+}
+
+function setMultiAnswer(partId, value) {
+    if (typeof userAnswers[currentQuestionIndex] !== 'object' || userAnswers[currentQuestionIndex] === null) {
+        userAnswers[currentQuestionIndex] = {};
+    }
+    userAnswers[currentQuestionIndex][partId] = value;
+}
+
+/* ============================================================
+   作答進度
+   ============================================================ */
+function isAnswered(idx) {
+    const q = exerciseData.questions[idx];
+    const ans = userAnswers[idx];
+
+    if (q.type === 'single') {
+        return ans !== null && ans !== undefined;
+    }
+    if (q.type === 'multi') {
+        if (!ans || typeof ans !== 'object') return false;
+        return q.parts.every(function (p) {
+            const v = ans[p.id];
+            if (p.type === 'text') return v !== undefined && String(v).trim() !== '';
+            return v !== undefined && v !== null;
+        });
+    }
+    return false;
+}
+
+function updateProgress() {
+    const grid = document.getElementById('progress-grid');
+    let html = '';
+    exerciseData.questions.forEach(function (q, idx) {
+        const cls = (isAnswered(idx) ? 'done ' : '') + (idx === currentQuestionIndex ? 'current' : '');
+        html += `<button class="prog-btn ${cls}" data-idx="${idx}">${idx + 1}</button>`;
+    });
+    grid.innerHTML = html;
+
+    grid.querySelectorAll('.prog-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            currentQuestionIndex = parseInt(this.dataset.idx, 10);
+            loadQuestion();
+            updateProgress();
+        });
+    });
+
+    const done = exerciseData.questions.filter(function (q, i) { return isAnswered(i); }).length;
+    document.getElementById('progress-text').textContent =
+        done + ' / ' + exerciseData.questions.length;
+}
+
+/* ============================================================
+   上／下一題
+   ============================================================ */
+function goPrev() {
+    if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        loadQuestion();
+        updateProgress();
+    }
+}
+
+function goNext() {
+    if (currentQuestionIndex < exerciseData.questions.length - 1) {
+        currentQuestionIndex++;
+        loadQuestion();
+        updateProgress();
+    }
+}
+
+/* ============================================================
+   提交前檢查
+   ============================================================ */
+function checkAndSubmit() {
+    const unanswered = [];
+    exerciseData.questions.forEach(function (q, idx) {
+        if (!isAnswered(idx)) unanswered.push(idx + 1);
+    });
+
+    if (unanswered.length > 0) {
+        let listHtml = '';
+        unanswered.forEach(function (n) {
+            listHtml += `<li>第 ${n} 題</li>`;
+        });
+        document.getElementById('unanswered-list').innerHTML = listHtml;
+        document.getElementById('warning-dialog').style.display = 'flex';
+        return;
+    }
+
+    submitQuiz();
+}
+
+/* ============================================================
+   提交並顯示結果
+   ============================================================ */
+function submitQuiz() {
+    let html = '<h3 style="color:#0f6e8c;margin-bottom:14px;">你的作答紀錄</h3>';
+
+    exerciseData.questions.forEach(function (q, idx) {
+        const ans = userAnswers[idx];
+        let ansHtml = '';
+
+        if (q.type === 'single') {
+            ansHtml = (ans !== null && ans !== undefined)
+                ? `${String.fromCharCode(65 + ans)}. ${q.options[ans]}`
+                : '未作答';
+        } else if (q.type === 'multi') {
+            ansHtml = '<ul class="answer-list">';
+            q.parts.forEach(function (p) {
+                const v = ans ? ans[p.id] : undefined;
+                let display = '未作答';
+                if (p.type === 'text') {
+                    display = (v && String(v).trim()) ? v : '未作答';
+                } else {
+                    display = (v !== undefined && v !== null) ? p.choices[v] : '未作答';
+                }
+                ansHtml += `<li><strong>${p.label}</strong> ${escapeHtml(display)}</li>`;
+            });
+            ansHtml += '</ul>';
+        }
+
+        html += `
+            <div class="result-item">
+                <p class="result-q"><strong>第 ${idx + 1} 題</strong>　${q.text}</p>
+                <div class="result-a">${ansHtml}</div>
+            </div>`;
+    });
+
+    document.getElementById('detailed-feedback').innerHTML = html;
+    document.querySelector('.main-content').style.display = 'none';
+    document.querySelector('.bottom-progress').style.display = 'none';
+    document.getElementById('button-container').style.display = 'none';
+    document.getElementById('result-area').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ============================================================
+   CSV 導出
+   ============================================================ */
+function exportToCSV() {
+    try {
+        const csvContent = generateCSVContent();
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+
+        const safeTitle = exerciseData.title.replace(/[\\/:*?"<>|]/g, '_');
+        const safeClass = studentClass.replace(/[\\/:*?"<>|]/g, '_');
+        const safeId = studentId.replace(/[\\/:*?"<>|]/g, '_');
+
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${safeTitle}_${safeClass}_${safeId}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        const tip = document.getElementById('export-success');
+        tip.style.display = 'block';
+        setTimeout(function () { tip.style.display = 'none'; }, 3000);
+
+    } catch (err) {
+        console.error('導出 CSV 時出錯:', err);
+        alert('導出 CSV 文件時出錯，請重試。');
+    }
+}
+
+function generateCSVContent() {
+    let csv = '\uFEFF';
+
+    const headers = ['練習名稱', '班別', '學號'];
+    exerciseData.questions.forEach(function (q) {
+        headers.push('第' + q.id + '題');
+    });
+    csv += headers.join(',') + '\n';
+
+    const row = [exerciseData.title, studentClass, studentId];
+
+    exerciseData.questions.forEach(function (q, idx) {
+        const ans = userAnswers[idx];
+        let text = '';
+
+        if (q.type === 'single') {
+            text = (ans !== null && ans !== undefined)
+                ? `${String.fromCharCode(65 + ans)}. ${q.options[ans]}`
+                : '未作答';
+        } else if (q.type === 'multi') {
+            const segs = [];
+            q.parts.forEach(function (p) {
+                const v = ans ? ans[p.id] : undefined;
+                let d = '未作答';
+                if (p.type === 'text') {
+                    d = (v && String(v).trim()) ? v : '未作答';
+                } else {
+                    d = (v !== undefined && v !== null) ? p.choices[v] : '未作答';
+                }
+                segs.push(p.label + ' ' + d);
+            });
+            text = segs.join(' | ');
+        }
+
+        if (text.includes(',') || text.includes('"') || text.includes('\n')) {
+            text = '"' + text.replace(/"/g, '""') + '"';
+        }
+        row.push(text);
+    });
+
+    csv += row.join(',') + '\n';
+    return csv;
+}
+</script>
+</body>
+</html>
